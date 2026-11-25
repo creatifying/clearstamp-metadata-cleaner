@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Clean photo, video and PDF metadata locally. Free batch downloads, with no uploads or account."
+    />
+    <title>Clearstamp — Free Metadata Cleaner</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="vendor/fflate.js" defer></script>
+    <script src="vendor/pdf-lib.js" defer></script>
+    <script src="vendor/exif-reader.js" defer></script>
+    <script src="cleaner.js" defer></script>
+    <script src="inspector.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="header">
+      <div class="wrap bar">
+        <a class="brand" href="./"
+          ><img src="logo.svg" alt="" />clearstamp<span>.</span></a
+        >
+        <nav aria-label="Main">
+          <a href="#cleaner">Cleaner</a><a href="#features">What it removes</a
+          ><a href="#instagram">Instagram AI Info</a><a href="#faq">FAQ</a>
+        </nav>
+        <span class="availability"><i></i> Free forever</span>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="hero" id="cleaner" aria-label="Metadata cleaner">
+        <div class="intro">
+          <h1>Free metadata cleaner <em>&amp; AI tag remover</em></h1>
+          <p>
+            Remove location, device details, and embedded AI metadata before you
+            share. All processing stays on your device.
+          </p>
+        </div>
+        <div class="panel">
+          <div class="modes" aria-label="File type">
+            <button type="button" data-mode="image" aria-pressed="true">
+              Images</button
+            ><button type="button" data-mode="video" aria-pressed="false">
+              Videos</button
+            ><button type="button" data-mode="pdf" aria-pressed="false">
+              PDFs</button
+            ><button type="button" data-mode="raw" aria-pressed="false">
+              RAW
+            </button>
+          </div>
+          <div class="drop" id="drop">
+            <div class="upload">
+              <img src="icons/cloud-upload.svg" alt="" />
+            </div>
+            <strong id="drop-title">Drop images here</strong
+            ><span id="formats">JPG, PNG, WebP, AVIF · up to 50 MB each</span
+            ><button class="primary" type="button" id="browse">
+              Choose files</button
+            ><input id="files" type="file" multiple hidden />
+          </div>
+          <div class="options" id="options">
+            <label
+              >File format
+              <select id="format">
+                <option value="original">Same format</option>
+                <option value="image/jpeg">JPEG</option>
+                <option value="image/png">PNG</option>
+                <option value="image/webp">WebP</option>
+                <option value="image/avif">AVIF</option>
+              </select></label
+            ><label
+              ><input id="lossless" type="checkbox" checked /> Preserve encoded
+              quality</label
+            >
+          </div>
+          <div class="naming">
+            <label for="filename">Output filename</label>
+            <input
+              id="filename"
+              type="text"
+              value="{name}-clean"
+              maxlength="120"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="filename-hint"
+            />
+            <small id="filename-hint"
+              >Use a custom name or a batch pattern like
+              <code>{name}-clean</code> or <code>photo-{n}</code>. The extension
+              follows the file format.</small
+            >
+          </div>
+          <p class="mode-note" id="mode-note"></p>
+          <ul class="proof" aria-label="Cleaner features">
+            <li>
+              <img src="icons/shield-check.svg" alt="" /> Runs on your device
+            </li>
+            <li>No account</li>
+            <li>Up to 30 files per batch</li>
+          </ul>
+          <div id="queue" class="queue" hidden>
+            <ul id="items"></ul>
+            <div class="actions">
+              <button id="run" class="primary" type="button">Clean files</button
+              ><button id="zip" type="button" hidden>Download ZIP</button
+              ><button id="clear" type="button">Clear</button>
+            </div>
+          </div>
+          <div id="processing" class="processing" hidden>
+            <div class="processing-head">
+              <span class="scanner" aria-hidden="true"></span>
+              <div>
+                <strong id="processing-title"></strong
+                ><small id="processing-file"></small>
+              </div>
+            </div>
+            <progress
+              id="processing-progress"
+              max="100"
+              value="0"
+              aria-label="Batch progress"
+            ></progress>
+            <ol id="processing-steps">
+              <li>Read file</li>
+              <li>Clean metadata</li>
+              <li>Prepare download</li>
+            </ol>
+          </div>
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+      <div class="tool-notes">
+        <article>
+          <span class="eyebrow">Other file types</span>
+          <h2>Clean videos, PDFs, and RAW previews</h2>
+          <p>
+            Clear common video tags and PDF document properties, or export a
+            clean JPEG from a camera RAW preview.
+          </p>
+          <div class="tool-links">
+            <a href="#cleaner" data-open-mode="video">Video cleaner</a
+            ><a href="#cleaner" data-open-mode="pdf">PDF cleaner</a
+            ><a href="#cleaner" data-open-mode="raw">RAW preview</a>
+          </div>
+        </article>
+        <article>
+          <span class="eyebrow">Original and cleaned files</span>
+          <h2>Check the metadata for yourself</h2>
+          <p>
+            Add an image to see its EXIF and embedded AI signals. Open
+            <strong>Inspect original</strong> or
+            <strong>Inspect cleaned</strong> from the file queue.
+          </p>
+        </article>
+      </div>
+      <section class="about" aria-labelledby="about-title">
+        <h2 id="about-title">What is a metadata cleaner?</h2>
+        <p>
+          Photos can carry information beyond the image itself. A phone can save
+          the coordinates where a photo was taken, a camera can record its
+          settings, and an AI image generator can embed prompts, seeds, or
+          provenance details.
+        </p>
+        <p>
+          Clearstamp creates a new copy with supported tags removed. You can
+          clean a batch before sharing it, then use the metadata report to check
+          what the original and cleaned files contain.
+        </p>
+      </section>
+      <section id="features" class="features">
+        <div class="section-heading">
+          <h2>What the cleaner removes</h2>
+          <p>
+            Clear the hidden details attached to your images before sharing
+            them.
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon blue"
+              ><img src="icons/camera.svg" alt=""
+            /></span>
+            <h3>EXIF data</h3>
+            <p>
+              Camera model, exposure settings, timestamps and device
+              identifiers.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon coral"
+              ><img src="icons/map-pin.svg" alt=""
+            /></span>
+            <h3>GPS and location</h3>
+            <p>
+              Coordinates and geotags that can reveal where a photo was taken.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon teal"
+              ><img src="icons/files.svg" alt=""
+            /></span>
+            <h3>XMP and IPTC</h3>
+            <p>Creator details, captions, keywords and editing information.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon violet"
+              ><img src="icons/file-badge.svg" alt=""
+            /></span>
+            <h3>Content Credentials</h3>
+            <p>
+              Embedded C2PA provenance records, where stored in the file
+              metadata.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon gold"
+              ><img src="icons/sparkles.svg" alt=""
+            /></span>
+            <h3>AI generation details</h3>
+            <p>
+              Generator tags and saved settings such as prompts, seeds and
+              samplers.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon pink"
+              ><img src="icons/scan-text.svg" alt=""
+            /></span>
+            <h3>PNG text chunks</h3>
+            <p>
+              Hidden text fields used by editors and tools such as Stable
+              Diffusion.
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="social" id="instagram">
+        <div class="social-copy">
+          <span class="feature-icon pink"
+            ><img src="icons/sparkles.svg" alt=""
+          /></span>
+          <h2>Instagram AI Info cleaner</h2>
+          <p>
+            Clean embedded AI generation details and Content Credentials from a
+            copy before you post. Instagram controls its AI Info label and can
+            use other signals, including your disclosure.
+          </p>
+          <a href="#cleaner" class="textlink" id="instagram-tool"
+            >Open the image cleaner</a
+          >
+        </div>
+        <img
+          class="social-art"
+          src="images/social-privacy.webp"
+          alt="A coastal photo surrounded by translucent location and sparkle tiles"
+          width="900"
+          height="600"
+          loading="lazy"
+        />
+      </section>
+      <section class="workflow" aria-labelledby="workflow-title">
+        <img
+          class="workflow-art"
+          src="images/alpine-sample.jpg"
+          alt="A pine-covered island reflected in an alpine lake"
+          width="900"
+          height="600"
+          loading="lazy"
+        />
+        <div>
+          <h2 id="workflow-title">How it works</h2>
+          <ol>
+            <li>
+              <span class="feature-icon blue"
+                ><img src="icons/image.svg" alt="" /></span
+              ><span
+                ><strong>Choose your files</strong><br />Drag in a batch or
+                select files from your device.</span
+              >
+            </li>
+            <li>
+              <span class="feature-icon violet"
+                ><img src="icons/scan-line.svg" alt="" /></span
+              ><span
+                ><strong>Clean in your browser</strong><br />Follow the progress
+                as the tool prepares new copies.</span
+              >
+            </li>
+            <li>
+              <span class="feature-icon teal"
+                ><img src="icons/download.svg" alt="" /></span
+              ><span
+                ><strong>Download the results</strong><br />Save one file at a
+                time or download the whole batch as a ZIP.</span
+              >
+            </li>
+          </ol>
+        </div>
+      </section>
+      <section class="faq" id="faq">
+        <div>
+          <div class="eyebrow">GOOD TO KNOW</div>
+          <h2>Frequently asked questions</h2>
+        </div>
+        <div>
+          <details>
+            <summary>Is Clearstamp free?</summary>
+            <p>
+              Yes. Every cleaner, batch processing, and ZIP downloads are free
+              without an account.
+            </p>
+          </details>
+          <details>
+            <summary>What does the image cleaner remove?</summary>
+            <p>
+              It removes embedded EXIF and GPS, XMP and IPTC, text chunks such
+              as Stable Diffusion prompts, and file-based C2PA credentials.
+              Pixel-based watermarks and visible text remain part of the image.
+            </p>
+          </details>
+          <details>
+            <summary>Will my image quality change?</summary>
+            <p>
+              Preserve mode keeps the encoded pixels for supported JPEG, PNG,
+              and WebP files. Format conversion, AVIF, and files that need
+              orientation correction use a fresh browser export. Animated images
+              require preserve mode.
+            </p>
+          </details>
+          <details>
+            <summary>What do the video, PDF, and RAW tools clean?</summary>
+            <p>
+              Videos keep their original tracks while common MP4 and MOV
+              metadata boxes are cleared. PDFs keep their pages and lose
+              document properties and XML metadata. RAW mode exports a clean
+              JPEG from the camera’s embedded preview when available.
+            </p>
+          </details>
+          <details>
+            <summary>
+              Can the inspector tell whether an image was made with AI?
+            </summary>
+            <p>
+              It reports embedded clues such as generator names, prompts and
+              declared digital source types. Tags can be edited or removed, so
+              an image with no signals may still be AI-generated. The inspector
+              does not analyze pixels or verify Content Credentials signatures.
+            </p>
+          </details>
+          <details>
+            <summary>Does Instagram remove an existing AI Info label?</summary>
+            <p>
+              The cleaner works on a new copy of your file. Instagram manages
+              existing posts, disclosure requirements, and labeling decisions.
+              <a
+                href="https://about.fb.com/news/2024/04/metas-approach-to-labeling-ai-generated-content-and-manipulated-media/"
+                >Read Meta’s labeling information</a
+              >.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+    <dialog id="inspect-dialog" aria-labelledby="inspect-title">
+      <div class="dialog-heading">
+        <h2 id="inspect-title">Image metadata</h2>
+        <form method="dialog"><button>Close</button></form>
+      </div>
+      <p id="inspect-status" role="status" class="status"></p>
+      <div id="inspect-result" hidden>
+        <div class="result-head">
+          <strong id="inspect-name"></strong
+          ><button id="inspect-copy" type="button">Save report</button>
+        </div>
+        <div class="verdict" id="verdict">
+          <img src="icons/sparkles.svg" alt="" />
+          <div>
+            <strong id="verdict-title"></strong>
+            <p id="verdict-text"></p>
+            <ul id="verdict-signals"></ul>
+          </div>
+        </div>
+        <div id="inspect-tags"></div>
+      </div>
+    </dialog>
+    <footer>
+      <div class="wrap bar">
+        <a class="brand" href="./"
+          ><img src="logo.svg" alt="" />clearstamp<span>.</span></a
+        ><span>Files are processed on your device.</span
+        ><span
+          >Built by
+          <a class="credit" href="https://github.com/creatifying"
+            >Creatifying</a
+          >
+          ·
+          <a
+            class="credit"
+            href="https://github.com/creatifying/clearstamp-metadata-cleaner"
+            >Source on GitHub</a
+          >
+          · <a class="credit" href="https://lucide.dev/">Lucide icons</a></span
+        >
+      </div>
+    </footer>
+  </body>
+</html>
